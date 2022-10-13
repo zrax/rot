@@ -1,0 +1,8 @@
+[package]
+name = "rot"
+version = "0.1.0"
+edition = "2018"
+
+[dependencies]
+regex = "1.3"
+lazy_static = "1.4"
