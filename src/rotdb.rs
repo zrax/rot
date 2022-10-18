@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::str::FromStr;
 use std::fs::File;
-use std::io::{BufRead, BufReader, Write, Error};
+use std::io::{BufRead, BufReader, Write, Result};
 
 use regex::Regex;
 use lazy_static::lazy_static;
@@ -19,7 +19,7 @@ fn normalize_key(key: &str) -> String {
     RE_SEPS.replace_all(key, ".").to_ascii_lowercase()
 }
 
-fn parse_zot_db(filename: &str) -> Result<HashMap<String, i64>, Error> {
+fn parse_zot_db(filename: &str) -> Result<HashMap<String, i64>> {
     let stream = File::open(filename)?;
     let values = BufReader::new(stream).lines()
         .filter_map(|line| {
@@ -32,14 +32,13 @@ fn parse_zot_db(filename: &str) -> Result<HashMap<String, i64>, Error> {
                     let parts: Vec<&str> = text.splitn(2, ':').collect();
                     if parts.len() != 2 {
                         eprintln!("Invalid line format in {}: \"{}\"", filename, text);
-                        None
-                    } else {
-                        match i64::from_str(parts[1]) {
-                            Ok(value) => Some((parts[0].to_string(), value)),
-                            Err(_) => {
-                                eprintln!("Invalid value in {}: \"{}\"", filename, text);
-                                None
-                            }
+                        return None;
+                    }
+                    match i64::from_str(parts[1]) {
+                        Ok(value) => Some((parts[0].to_string(), value)),
+                        Err(_) => {
+                            eprintln!("Invalid value in {}: \"{}\"", filename, text);
+                            None
                         }
                     }
                 }
@@ -90,13 +89,13 @@ impl RotDb {
         let mut stream = match File::create(&self.filename) {
             Ok(stream) => stream,
             Err(err) => {
-                let _ = eprintln!("Could not open {} for writing:\n{}", self.filename, err);
+                eprintln!("Could not open {} for writing:\n{}", self.filename, err);
                 return;
             }
         };
         for (key, val) in &self.values {
             if let Some(err) = writeln!(stream, "{}:{}", &key, &val).err() {
-                let _ = eprintln!("Could not write to {}:\n{}", self.filename, err);
+                eprintln!("Could not write to {}:\n{}", self.filename, err);
                 return;
             }
         }
