@@ -1,5 +1,3 @@
-use std::iter::Peekable;
-
 use regex::Regex;
 use lazy_static::lazy_static;
 
