@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use std::str::FromStr;
 use std::fs::File;
 use std::io::{BufRead, BufReader, Write, Result};
 
@@ -19,6 +18,21 @@ fn normalize_key(key: &str) -> String {
     RE_SEPS.replace_all(key, ".").to_ascii_lowercase()
 }
 
+fn parse_db_line(filename: &str, text: &str) -> Option<(String, i64)> {
+    let parts: Vec<&str> = text.splitn(2, ':').collect();
+    if parts.len() != 2 {
+        eprintln!("Invalid line format in {}: \"{}\"", filename, text);
+        return None;
+    }
+    match parts[1].parse::<i64>() {
+        Ok(value) => Some((parts[0].to_string(), value)),
+        Err(_) => {
+            eprintln!("Invalid value in {}: \"{}\"", filename, text);
+            None
+        }
+    }
+}
+
 fn parse_zot_db(filename: &str) -> Result<HashMap<String, i64>> {
     let stream = File::open(filename)?;
     let values = BufReader::new(stream).lines()
@@ -28,20 +42,7 @@ fn parse_zot_db(filename: &str) -> Result<HashMap<String, i64>> {
                     eprintln!("Error reading line from {}:\n{}", filename, err);
                     None
                 }
-                Ok(text) => {
-                    let parts: Vec<&str> = text.splitn(2, ':').collect();
-                    if parts.len() != 2 {
-                        eprintln!("Invalid line format in {}: \"{}\"", filename, text);
-                        return None;
-                    }
-                    match i64::from_str(parts[1]) {
-                        Ok(value) => Some((parts[0].to_string(), value)),
-                        Err(_) => {
-                            eprintln!("Invalid value in {}: \"{}\"", filename, text);
-                            None
-                        }
-                    }
-                }
+                Ok(text) => parse_db_line(filename, &text),
             }
         }).collect();
 
@@ -49,7 +50,8 @@ fn parse_zot_db(filename: &str) -> Result<HashMap<String, i64>> {
 }
 
 impl RotDb {
-    pub fn new(filename: String) -> RotDb {
+    pub fn new(filename_ref: &str) -> RotDb {
+        let filename = filename_ref.to_owned();
         match parse_zot_db(&filename) {
             Ok(values) => RotDb { filename, values, dirty: false },
             Err(_) => {
@@ -60,11 +62,8 @@ impl RotDb {
     }
 
     pub fn value(&self, key: &str) -> i64 {
-        if let Some(&val) = self.values.get(&normalize_key(key)) {
-            val
-        } else {
-            0
-        }
+        *self.values.get(&normalize_key(key))
+                    .unwrap_or(&0)
     }
 
     pub fn increment(&mut self, key: &str) -> i64 {
@@ -115,7 +114,7 @@ fn test_rotdb() {
     {
         // Start from a clean slate
         let _ = std::fs::remove_file("test.db");
-        let mut db = RotDb::new("test.db".to_string());
+        let mut db = RotDb::new("test.db");
         assert_eq!(db.increment("Foo::Bar"), 1);
         assert_eq!(db.decrement("Bar.foo"), -1);
         assert_eq!(db.value("Foo.BAR"), 1);
@@ -126,7 +125,7 @@ fn test_rotdb() {
     }
     {
         // Load previous database
-        let db = RotDb::new("test.db".to_string());
+        let db = RotDb::new("test.db");
         assert_eq!(db.value("Foo.BAR"), 1);
         assert_eq!(db.value("bar->foo"), -1);
         assert_eq!(db.value("Baz"), 0);
