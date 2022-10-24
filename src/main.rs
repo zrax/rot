@@ -19,7 +19,7 @@ async fn main() {
     let nick = argp.next().unwrap();
 
     let mut client = IrcClient::new("zot.db", &remote_addr, &nick);
-    while let Some(channel) = argp.next() {
+    for channel in argp {
         client.join(&channel);
     }
 
