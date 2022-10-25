@@ -85,7 +85,7 @@ impl IrcClient {
                     }
                     Ok(n) => {
                         chunk.extend(&buf[0..n]);
-                        chunk = self.process_lines(&chunk, &mut sock);
+                        chunk = self.process_lines(&chunk, &mut sock).await;
                     }
                     Err(err) => {
                         eprintln!("Failed to read from server: {}", err);
@@ -119,19 +119,43 @@ impl IrcClient {
         let _ = sock.write_all(b"QUIT :--rot!\r\n").await;
     }
 
-    fn process_lines(&mut self, mut chunk: &[u8], sock: &mut TcpStream) -> Vec<u8> {
+    async fn process_lines(&mut self, mut chunk: &[u8], sock: &mut TcpStream) -> Vec<u8> {
         while let Some(pos) = chunk.iter().position(|c| *c == b'\n') {
             let parts = irc_split(&chunk[0..pos]);
             chunk = &chunk[pos + 1..];
 
             if parts.len() >= 2 && parts[0] == "PING" {
-                let _ = sock.write_all(format!("PONG {}\r\n", parts[1]).as_bytes());
+                let _ = sock.write_all(format!("PONG {}\r\n", parts[1]).as_bytes()).await;
             } else if parts.len() >= 2 && parts[1] == "PONG" {
                 // The timer itself will be reset by the event loop.
                 self.ping_state = PingState::Reset;
-            } else if parts.len() >= 3 && parts[1] == "PRIVMSG" {
-                // TODO
-                println!("Would process PRIVMSG");
+            } else if parts.len() >= 4 && parts[1] == "PRIVMSG" {
+                let sender = match parts[0].splitn(2, '!').next() {
+                    Some(name) => trim_marker(&name),
+                    None => trim_marker(&parts[0]),
+                };
+                let dest = {
+                    let name = trim_marker(&parts[2]);
+                    if name == self.nick {
+                        sender
+                    } else {
+                        name
+                    }
+                };
+                let message = trim_marker(&parts[3]);
+
+                let parsed = match parse_line(message) {
+                    ParsedLine::Nothing => None,
+                    ParsedLine::Increment(name) => Some((self.db.increment(&name), name)),
+                    ParsedLine::Decrement(name) => Some((self.db.decrement(&name), name)),
+                    ParsedLine::Query(name) => Some((self.db.value(&name), name)),
+                };
+
+                if let Some((value, name)) = parsed {
+                    let _ = sock.write_all(
+                                format!("PRIVMSG {} :{} = {}\r\n", dest, name, value).as_bytes()
+                            ).await;
+                }
             }
         }
         // Return the remainder for the next call
@@ -217,4 +241,12 @@ fn irc_split(mut line: &[u8]) -> Vec<String> {
     }
 
     parts
+}
+
+fn trim_marker(msg: &str) -> &str {
+    if msg.starts_with(':') {
+        &msg[1..]
+    } else {
+        &msg
+    }
 }
