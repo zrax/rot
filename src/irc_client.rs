@@ -26,6 +26,15 @@ const DB_SAVE_INTERVAL: Duration = Duration::from_secs(15 * 60);
 const PING_INTERVAL: Duration = Duration::from_secs(5 * 60);
 const TIMEOUT_DURATION: Duration = Duration::from_secs(60);
 
+macro_rules! connect_sock {
+    ($self:ident, $reconnect:expr) => {
+        match $self.connect($reconnect).await {
+            Some(sock) => sock,
+            None => return,
+        }
+    }
+}
+
 impl IrcClient {
     pub fn new(filename: &str, remote_addr: &str, nick: &str) -> IrcClient {
         let (shutdown_send, shutdown_recv) = mpsc::channel(1);
@@ -58,10 +67,7 @@ impl IrcClient {
         let mut save_timer = tokio::time::interval(DB_SAVE_INTERVAL);
         save_timer.tick().await;    // The first tick comes immediately
 
-        let mut sock = match self.connect(false).await {
-            Some(sock) => sock,
-            None => return,
-        };
+        let mut sock = connect_sock!(self, false);
 
         let ping_timer = tokio::time::sleep(PING_INTERVAL);
         tokio::pin!(ping_timer);
@@ -78,10 +84,7 @@ impl IrcClient {
                 result = sock.read(&mut buf) => match result {
                     Ok(0) => {
                         eprintln!("Server closed the connection");
-                        sock = match self.connect(true).await {
-                            Some(sock) => sock,
-                            None => return,
-                        };
+                        sock = connect_sock!(self, true);
                     }
                     Ok(n) => {
                         chunk.extend(&buf[0..n]);
@@ -89,10 +92,7 @@ impl IrcClient {
                     }
                     Err(err) => {
                         eprintln!("Failed to read from server: {}", err);
-                        sock = match self.connect(true).await {
-                            Some(sock) => sock,
-                            None => return,
-                        };
+                        sock = connect_sock!(self, true);
                     }
                 },
                 _ = &mut ping_timer => match self.ping_state {
@@ -104,10 +104,7 @@ impl IrcClient {
                     }
                     PingState::PingPending => {
                         eprintln!("No PING response from server");
-                        sock = match self.connect(true).await {
-                            Some(sock) => sock,
-                            None => return,
-                        };
+                        sock = connect_sock!(self, true);
                     }
                 },
                 _ = save_timer.tick() => self.db.sync(),
