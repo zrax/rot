@@ -127,8 +127,8 @@ impl IrcClient {
                 // The timer itself will be reset by the event loop.
                 self.ping_state = PingState::Reset;
             } else if parts.len() >= 4 && parts[1] == "PRIVMSG" {
-                let sender = match parts[0].splitn(2, '!').next() {
-                    Some(name) => trim_marker(&name),
+                let sender = match parts[0].split('!').next() {
+                    Some(name) => trim_marker(name),
                     None => trim_marker(&parts[0]),
                 };
                 let dest = {
@@ -226,7 +226,7 @@ fn irc_split(mut line: &[u8]) -> Vec<String> {
             line = &line[scan..];
             scan = 0;
             if line.starts_with(b":") {
-                parts.push(String::from_utf8_lossy(&line).to_string());
+                parts.push(String::from_utf8_lossy(line).to_string());
                 break;
             }
         } else {
@@ -234,16 +234,16 @@ fn irc_split(mut line: &[u8]) -> Vec<String> {
         }
     }
     if scan != 0 {
-        parts.push(String::from_utf8_lossy(&line).to_string());
+        parts.push(String::from_utf8_lossy(line).to_string());
     }
 
     parts
 }
 
 fn trim_marker(msg: &str) -> &str {
-    if msg.starts_with(':') {
-        &msg[1..]
+    if let Some(stripped) = msg.strip_prefix(':') {
+        stripped
     } else {
-        &msg
+        msg
     }
 }

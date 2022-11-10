@@ -1,7 +1,7 @@
 use regex::Regex;
 use lazy_static::lazy_static;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum ParsedLine {
     Nothing,
     Increment(String),
