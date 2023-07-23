@@ -3,7 +3,7 @@ use std::fs::File;
 use std::io::{BufRead, BufReader, Write, Result};
 
 use regex::Regex;
-use lazy_static::lazy_static;
+use once_cell::sync::Lazy;
 
 pub struct RotDb {
     filename: String,
@@ -12,9 +12,7 @@ pub struct RotDb {
 }
 
 fn normalize_key(key: &str) -> String {
-    lazy_static! {
-        static ref RE_SEPS: Regex = Regex::new("(::|->)").unwrap();
-    }
+    static RE_SEPS: Lazy<Regex> = Lazy::new(|| Regex::new("(::|->)").unwrap());
     RE_SEPS.replace_all(key, ".").to_ascii_lowercase()
 }
 

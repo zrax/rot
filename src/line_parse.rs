@@ -1,5 +1,5 @@
 use regex::Regex;
-use lazy_static::lazy_static;
+use once_cell::sync::Lazy;
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum ParsedLine {
@@ -20,13 +20,15 @@ fn parsed_from(op: &str, ident: &str) -> ParsedLine {
 }
 
 pub fn parse_line(line: &str) -> ParsedLine {
-    lazy_static! {
-        static ref RE_CLEAN: Regex = Regex::new(r"(?:/\*(?:[^/]|/[^*])*\*/|//.*)").unwrap();
-        static ref RE_PREOP: Regex = Regex::new(
-                r"^\s*(\+\+|--|\?)\s*([A-Za-z_][A-Za-z0-9_]*(?:(?:\.|->|::)[A-Za-z_][A-Za-z0-9_]*)*)[\s;]*$").unwrap();
-        static ref RE_POSTOP: Regex = Regex::new(
-                r"^\s*([A-Za-z_][A-Za-z0-9_]*(?:(?:\.|->|::)[A-Za-z_][A-Za-z0-9_]*)*)\s*(\+\+|--)[\s;]*$").unwrap();
-    }
+    static RE_CLEAN: Lazy<Regex> = Lazy::new(|| {
+        Regex::new(r"(?:/\*(?:[^/]|/[^*])*\*/|//.*)").unwrap()
+    });
+    static RE_PREOP: Lazy<Regex> = Lazy::new(|| {
+        Regex::new(r"^\s*(\+\+|--|\?)\s*([A-Za-z_][A-Za-z0-9_]*(?:(?:\.|->|::)[A-Za-z_][A-Za-z0-9_]*)*)[\s;]*$").unwrap()
+    });
+    static RE_POSTOP: Lazy<Regex> = Lazy::new(|| {
+        Regex::new(r"^\s*([A-Za-z_][A-Za-z0-9_]*(?:(?:\.|->|::)[A-Za-z_][A-Za-z0-9_]*)*)\s*(\+\+|--)[\s;]*$").unwrap()
+    });
 
     let clean = RE_CLEAN.replace_all(line, "");
     if let Some(pre_caps) = RE_PREOP.captures(&clean) {
