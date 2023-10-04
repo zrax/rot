@@ -8,14 +8,13 @@ pub enum ParsedLine {
     Decrement(String),
     Query(String),
 }
-use ParsedLine::*;
 
 fn parsed_from(op: &str, ident: &str) -> ParsedLine {
     match op {
-        "++" => Increment(ident.to_string()),
-        "--" => Decrement(ident.to_string()),
-        "?" => Query(ident.to_string()),
-        _ => Nothing,
+        "++" => ParsedLine::Increment(ident.to_string()),
+        "--" => ParsedLine::Decrement(ident.to_string()),
+        "?" => ParsedLine::Query(ident.to_string()),
+        _ => ParsedLine::Nothing,
     }
 }
 
@@ -36,69 +35,69 @@ pub fn parse_line(line: &str) -> ParsedLine {
     } else if let Some(post_caps) = RE_POSTOP.captures(&clean) {
         parsed_from(&post_caps[2], &post_caps[1])
     } else {
-        Nothing
+        ParsedLine::Nothing
     }
 }
 
 #[test]
 fn test_parser() {
-    assert_eq!(parse_line(""), Nothing);
-    assert_eq!(parse_line("Hello, world!"), Nothing);
-    assert_eq!(parse_line("// ++empty"), Nothing);
-    assert_eq!(parse_line("// --empty"), Nothing);
-    assert_eq!(parse_line("// ?empty"), Nothing);
-    assert_eq!(parse_line("/* ++empty */"), Nothing);
-    assert_eq!(parse_line("/* --empty */"), Nothing);
-    assert_eq!(parse_line("/* ?empty */"), Nothing);
+    assert_eq!(parse_line(""), ParsedLine::Nothing);
+    assert_eq!(parse_line("Hello, world!"), ParsedLine::Nothing);
+    assert_eq!(parse_line("// ++empty"), ParsedLine::Nothing);
+    assert_eq!(parse_line("// --empty"), ParsedLine::Nothing);
+    assert_eq!(parse_line("// ?empty"), ParsedLine::Nothing);
+    assert_eq!(parse_line("/* ++empty */"), ParsedLine::Nothing);
+    assert_eq!(parse_line("/* --empty */"), ParsedLine::Nothing);
+    assert_eq!(parse_line("/* ?empty */"), ParsedLine::Nothing);
 
-    assert_eq!(parse_line("++foo"), Increment("foo".to_string()));
-    assert_eq!(parse_line("foo++"), Increment("foo".to_string()));
-    assert_eq!(parse_line("--foo"), Decrement("foo".to_string()));
-    assert_eq!(parse_line("foo--"), Decrement("foo".to_string()));
-    assert_eq!(parse_line("?foo"), Query("foo".to_string()));
+    assert_eq!(parse_line("++foo"), ParsedLine::Increment("foo".to_string()));
+    assert_eq!(parse_line("foo++"), ParsedLine::Increment("foo".to_string()));
+    assert_eq!(parse_line("--foo"), ParsedLine::Decrement("foo".to_string()));
+    assert_eq!(parse_line("foo--"), ParsedLine::Decrement("foo".to_string()));
+    assert_eq!(parse_line("?foo"), ParsedLine::Query("foo".to_string()));
 
-    assert_eq!(parse_line("++Foo::Bar"), Increment("Foo::Bar".to_string()));
-    assert_eq!(parse_line("++Foo->Bar"), Increment("Foo->Bar".to_string()));
-    assert_eq!(parse_line("++Foo.Bar"), Increment("Foo.Bar".to_string()));
-    assert_eq!(parse_line("++Foo..Bar"), Nothing);
-    assert_eq!(parse_line("++Foo:Bar"), Nothing);
-    assert_eq!(parse_line("++Foo:::Bar"), Nothing);
-    assert_eq!(parse_line("++Foo :: Bar"), Nothing);
-    assert_eq!(parse_line("++Foo: :Bar"), Nothing);
-    assert_eq!(parse_line("+ +Foo::Bar"), Nothing);
-    assert_eq!(parse_line("+Foo::Bar"), Nothing);
-    assert_eq!(parse_line("+-Foo::Bar"), Nothing);
+    assert_eq!(parse_line("++Foo::Bar"), ParsedLine::Increment("Foo::Bar".to_string()));
+    assert_eq!(parse_line("++Foo->Bar"), ParsedLine::Increment("Foo->Bar".to_string()));
+    assert_eq!(parse_line("++Foo.Bar"), ParsedLine::Increment("Foo.Bar".to_string()));
+    assert_eq!(parse_line("++Foo..Bar"), ParsedLine::Nothing);
+    assert_eq!(parse_line("++Foo:Bar"), ParsedLine::Nothing);
+    assert_eq!(parse_line("++Foo:::Bar"), ParsedLine::Nothing);
+    assert_eq!(parse_line("++Foo :: Bar"), ParsedLine::Nothing);
+    assert_eq!(parse_line("++Foo: :Bar"), ParsedLine::Nothing);
+    assert_eq!(parse_line("+ +Foo::Bar"), ParsedLine::Nothing);
+    assert_eq!(parse_line("+Foo::Bar"), ParsedLine::Nothing);
+    assert_eq!(parse_line("+-Foo::Bar"), ParsedLine::Nothing);
 
-    assert_eq!(parse_line("Foo::Bar++"), Increment("Foo::Bar".to_string()));
-    assert_eq!(parse_line("Foo->Bar++"), Increment("Foo->Bar".to_string()));
-    assert_eq!(parse_line("Foo.Bar++"), Increment("Foo.Bar".to_string()));
-    assert_eq!(parse_line("Foo..Bar++"), Nothing);
-    assert_eq!(parse_line("Foo:Bar++"), Nothing);
-    assert_eq!(parse_line("Foo:::Bar++"), Nothing);
-    assert_eq!(parse_line("Foo :: Bar++"), Nothing);
-    assert_eq!(parse_line("Foo: :Bar++"), Nothing);
-    assert_eq!(parse_line("Foo::Bar+ +"), Nothing);
-    assert_eq!(parse_line("Foo::Bar+"), Nothing);
-    assert_eq!(parse_line("Foo::Bar+-"), Nothing);
+    assert_eq!(parse_line("Foo::Bar++"), ParsedLine::Increment("Foo::Bar".to_string()));
+    assert_eq!(parse_line("Foo->Bar++"), ParsedLine::Increment("Foo->Bar".to_string()));
+    assert_eq!(parse_line("Foo.Bar++"), ParsedLine::Increment("Foo.Bar".to_string()));
+    assert_eq!(parse_line("Foo..Bar++"), ParsedLine::Nothing);
+    assert_eq!(parse_line("Foo:Bar++"), ParsedLine::Nothing);
+    assert_eq!(parse_line("Foo:::Bar++"), ParsedLine::Nothing);
+    assert_eq!(parse_line("Foo :: Bar++"), ParsedLine::Nothing);
+    assert_eq!(parse_line("Foo: :Bar++"), ParsedLine::Nothing);
+    assert_eq!(parse_line("Foo::Bar+ +"), ParsedLine::Nothing);
+    assert_eq!(parse_line("Foo::Bar+"), ParsedLine::Nothing);
+    assert_eq!(parse_line("Foo::Bar+-"), ParsedLine::Nothing);
 
-    assert_eq!(parse_line("  ++  foo  "), Increment("foo".to_string()));
-    assert_eq!(parse_line("  foo  ++  "), Increment("foo".to_string()));
-    assert_eq!(parse_line("  --  foo  "), Decrement("foo".to_string()));
-    assert_eq!(parse_line("  foo  --  "), Decrement("foo".to_string()));
-    assert_eq!(parse_line("  ?  foo  "), Query("foo".to_string()));
+    assert_eq!(parse_line("  ++  foo  "), ParsedLine::Increment("foo".to_string()));
+    assert_eq!(parse_line("  foo  ++  "), ParsedLine::Increment("foo".to_string()));
+    assert_eq!(parse_line("  --  foo  "), ParsedLine::Decrement("foo".to_string()));
+    assert_eq!(parse_line("  foo  --  "), ParsedLine::Decrement("foo".to_string()));
+    assert_eq!(parse_line("  ?  foo  "), ParsedLine::Query("foo".to_string()));
 
     assert_eq!(parse_line(" /* junk */ ++ /* junk */ foo /* junk */ // junk"),
-               Increment("foo".to_string()));
+               ParsedLine::Increment("foo".to_string()));
     assert_eq!(parse_line(" /* junk */ foo /* junk */ ++ /* junk */ // junk"),
-               Increment("foo".to_string()));
+               ParsedLine::Increment("foo".to_string()));
     assert_eq!(parse_line(" /* junk */ -- /* junk */ foo /* junk */ // junk"),
-               Decrement("foo".to_string()));
+               ParsedLine::Decrement("foo".to_string()));
     assert_eq!(parse_line(" /* junk */ foo /* junk */ -- /* junk */ // junk"),
-               Decrement("foo".to_string()));
+               ParsedLine::Decrement("foo".to_string()));
     assert_eq!(parse_line(" /* junk */ ? /* junk */ foo /* junk */ // junk"),
-               Query("foo".to_string()));
+               ParsedLine::Query("foo".to_string()));
     assert_eq!(parse_line("/*junk*/++/*junk*/foo::bar/*junk*///junk"),
-               Increment("foo::bar".to_string()));
+               ParsedLine::Increment("foo::bar".to_string()));
     assert_eq!(parse_line("+/* junk */+foo:/* junk */:bar // junk"),
-               Increment("foo::bar".to_string()));
+               ParsedLine::Increment("foo::bar".to_string()));
 }

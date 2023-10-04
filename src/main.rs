@@ -1,3 +1,7 @@
+#![deny(clippy::all)]
+#![deny(clippy::pedantic)]
+#![allow(clippy::uninlined_format_args)]    // Added in Rust 1.66
+
 mod rotdb;
 mod line_parse;
 mod irc_client;

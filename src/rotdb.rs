@@ -22,12 +22,11 @@ fn parse_db_line(filename: &str, text: &str) -> Option<(String, i64)> {
         eprintln!("Invalid line format in {}: \"{}\"", filename, text);
         return None;
     }
-    match parts[1].parse::<i64>() {
-        Ok(value) => Some((parts[0].to_string(), value)),
-        Err(_) => {
-            eprintln!("Invalid value in {}: \"{}\"", filename, text);
-            None
-        }
+    if let Ok(value) = parts[1].parse::<i64>() {
+        Some((parts[0].to_string(), value))
+    } else {
+        eprintln!("Invalid value in {}: \"{}\"", filename, text);
+        None
     }
 }
 
@@ -50,12 +49,11 @@ fn parse_zot_db(filename: &str) -> Result<HashMap<String, i64>> {
 impl RotDb {
     pub fn new(filename_ref: &str) -> RotDb {
         let filename = filename_ref.to_owned();
-        match parse_zot_db(&filename) {
-            Ok(values) => RotDb { filename, values, dirty: false },
-            Err(_) => {
-                eprintln!("Initializing new zot db");
-                RotDb { filename, values: HashMap::new(), dirty: false }
-            }
+        if let Ok(values) = parse_zot_db(&filename) {
+            RotDb { filename, values, dirty: false }
+        } else {
+            eprintln!("Initializing new zot db");
+            RotDb { filename, values: HashMap::new(), dirty: false }
         }
     }
 
