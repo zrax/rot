@@ -15,7 +15,7 @@ async fn main() {
     let self_exe = argp.next();
     if argp.len() < 2 {
         eprintln!("Usage: {} hostname:port nick [channel [...]]",
-                  self_exe.unwrap_or_else(|| "<Unknown>".to_string()));
+                  self_exe.as_deref().unwrap_or("<Unknown>"));
         std::process::exit(1);
     }
 
