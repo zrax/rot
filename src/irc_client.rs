@@ -95,7 +95,7 @@ impl IrcClient {
                         sock = connect_sock!(self, true);
                     }
                 },
-                _ = &mut ping_timer => match self.ping_state {
+                () = &mut ping_timer => match self.ping_state {
                     PingState::Reset => unreachable!(),
                     PingState::Waiting => {
                         let _ = sock.write_all(b"PING :rot\r\n").await;
@@ -162,7 +162,7 @@ impl IrcClient {
     async fn reconnect_delay(&mut self) -> bool {
         eprintln!("Retrying in 60 sec...");
         tokio::select! {
-            _ = tokio::time::sleep(Duration::from_secs(60)) => true,
+            () = tokio::time::sleep(Duration::from_secs(60)) => true,
             _ = self.shutdown_recv.recv() => false,
         }
     }
