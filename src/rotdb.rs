@@ -89,7 +89,7 @@ impl RotDb {
             }
         };
         for (key, val) in &self.values {
-            if let Some(err) = writeln!(stream, "{}:{}", &key, &val).err() {
+            if let Some(err) = writeln!(stream, "{}:{}", key, val).err() {
                 eprintln!("Could not write to {}:\n{}", self.filename, err);
                 return;
             }

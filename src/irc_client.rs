@@ -180,7 +180,7 @@ impl IrcClient {
                     eprintln!("Failed to connect to {}: {}", self.remote_addr, err);
                 }
                 Err(_) => eprintln!("Connection timed out"),
-            };
+            }
 
             if !self.reconnect_delay().await {
                 return None;
